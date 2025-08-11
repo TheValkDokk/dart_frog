@@ -9,31 +9,17 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_sse/dart_frog_sse.dart';
 
 Future<Response> onRequest(RequestContext context) async {
+
+  final keepAlive = request.url.queryParameters['keepAlive'] ?? '30';
+  final keepAliveDuration = Duration(seconds: int.parse(keepAlive));
+  
   final handler = sseHandler(
     (connection) {
-      // Subscribe to the stream of messages from the client.
-      connection.stream.listen(
-        (message) {
-          // Handle incoming messages.
-          print('received: $message');
-          // Send outgoing messages to the connected client.
-          connection.sink.add('data from server...');
-        },
-        // The connection was terminated.
-        onDone: () => print('disconnected and closed'),
-      );
-      
-      // Send periodic updates
-      Timer.periodic(const Duration(seconds: 5), (timer) {
-        try {
-          connection.sink.add('Update: ${DateTime.now()}');
-        } on Exception {
-          timer.cancel(); // Connection closed
-        }
-      });
+      // Send outgoing messages to the connected client.
+      connection.sink.add('data from server...');
     },
     '/sse',
-    keepAlive: const Duration(seconds: 30),
+    keepAlive: keepAliveDuration,
   );
   
   return handler(context);

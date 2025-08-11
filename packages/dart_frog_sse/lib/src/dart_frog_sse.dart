@@ -15,15 +15,8 @@ final Map<String, bool> _connectionHandlingStarted = {};
 ///
 /// final onRequest = sseHandler(
 ///   (connection) {
-///     // Subscribe to the stream of messages from the client.
-///     connection.stream.listen(
-///       (message) {
-///         // Send outgoing messages to the connected client.
-///         connection.sink.add('Server response: $message');
-///       },
-///       // The connection was terminated.
-///       onDone: () => print('SSE connection closed'),
-///     );
+///      // Send outgoing messages to the connected client.
+///      connection.sink.add('Server response: $message');
 ///   },
 ///   '/sse', // SSE endpoint path
 /// );
@@ -31,7 +24,6 @@ final Map<String, bool> _connectionHandlingStarted = {};
 ///
 /// The [onConnection] callback is invoked whenever a new SSE connection
 /// is established. It receives an [SseConnection] object that provides:
-/// - `stream`: A stream of incoming messages from the client
 /// - `sink`: A sink for sending messages to the client
 ///
 /// The [path] parameter specifies the URI path for SSE connections.
@@ -47,16 +39,13 @@ Handler sseHandler(
   String path, {
   Duration? keepAlive,
 }) {
-  // Create a unique key for this handler configuration
   final handlerKey = '$path:${keepAlive?.inMilliseconds ?? 0}';
-  
-  // Get or create a persistent handler instance
+
   final sseHandler = _handlerInstances.putIfAbsent(
     handlerKey,
     () => SseHandler(Uri.parse(path), keepAlive: keepAlive),
   );
 
-  // Start connection handling only once per handler
   if (!(_connectionHandlingStarted[handlerKey] ?? false)) {
     _connectionHandlingStarted[handlerKey] = true;
     _handleConnections(sseHandler, onConnection);
@@ -65,7 +54,6 @@ Handler sseHandler(
   return fromShelfHandler(sseHandler.handler);
 }
 
-/// Handles new SSE connections
 void _handleConnections(
   SseHandler sseHandler,
   void Function(SseConnection connection) onConnection,
@@ -85,13 +73,4 @@ void _handleConnections(
   }
 
   Timer.run(processConnections);
-}
-
-/// Clears all SSE handler instances. Useful for testing or cleanup.
-void clearSseHandlers() {
-  for (final handler in _handlerInstances.values) {
-    handler.shutdown();
-  }
-  _handlerInstances.clear();
-  _connectionHandlingStarted.clear();
 }
